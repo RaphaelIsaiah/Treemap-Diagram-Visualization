@@ -1,0 +1,39 @@
+body {
+  font-family: Arial, sans-serif;
+}
+
+#title {
+  text-align: center;
+  font-size: 2em;
+  margin-bottom: 10px;
+}
+
+#description {
+  text-align: center;
+  font-size: 1.2em;
+  margin-bottom: 20px;
+}
+
+.tile {
+  stroke: #fff;
+  stroke-width: 1px;
+}
+
+#tooltip {
+  position: absolute;
+  background: #fff;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  pointer-events: none;
+  font-size: 0.9em;
+}
+
+#legend {
+  font-size: 0.8em;
+}
+
+.tile:hover {
+  stroke: #000;
+  stroke-width: 1px;
+}
