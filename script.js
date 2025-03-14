@@ -8,7 +8,7 @@ const svg = d3
   .attr("height", height);
 
 const url =
-  "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/video-game-sales-data.json";
+  "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/movie-data.json";
 
 d3.json(url).then((data) => {
   // Create treemap layout
@@ -45,6 +45,26 @@ d3.json(url).then((data) => {
     .attr("data-name", (d) => d.data.name)
     .attr("data-category", (d) => d.data.category)
     .attr("data-value", (d) => d.data.value);
+
+  // Add text to tiles
+  cells
+    .append("text")
+    .attr("x", 5) // Padding from the left edge
+    .attr("y", 15) // Padding from the top edge
+    .text((d) => {
+      // Truncate text if it's too long
+      const maxLength = (d.x1 - d.x0) / 8; // Adjust based on font size
+      return d.data.name.length > maxLength
+        ? d.data.name.substring(0, maxLength) + "..."
+        : d.data.name;
+    })
+    .attr("font-size", (d) => {
+      // Adjust font size based on tile size
+      const tileWidth = d.x1 - d.x0;
+      const tileHeight = d.y1 - d.y0;
+      return Math.min(12, tileWidth / 10, tileHeight / 2) + "px";
+    })
+    .attr("fill", "white");
 
   // Tooltip
   const tooltip = d3
@@ -85,6 +105,7 @@ d3.json(url).then((data) => {
     .data(categories)
     .enter()
     .append("rect")
+    .attr("class", "legend-item")
     .attr("x", 0)
     .attr("y", (d, i) => i * 25)
     .attr("width", 20)
