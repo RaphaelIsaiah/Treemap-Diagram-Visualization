@@ -19,17 +19,30 @@ d3.json(url).then((data) => {
   const treemap = d3
     .treemap()
     .size([width, height])
-    .tile(d3.treemapSquarify) // Ensures best space allocation
-    .paddingInner(1) // Ensures better spacing between tiles
-    .round(true);
+    .tile(d3.treemapResquarify) // Use 'resquarify' for better proportional area
+    .paddingInner(1); // Ensures some spacing inside tiles
 
   // Create hierarchy
   const root = d3
     .hierarchy(data)
-    .sum((d) => d.value)
-    .sort((a, b) => b.value - a.value);
+    .eachBefore(function (d) {
+      d.data.id = (d.parent ? d.parent.data.id + "." : "") + d.data.name;
+    })
+    .sum((d) => d.value) // Sum values for tile sizes
+    .sort(function (a, b) {
+      return b.height - a.height || b.value - a.value; // Sort by height and value
+    });
 
   treemap(root);
+
+  // Log tile areas for debugging
+  root.leaves().forEach((d) => {
+    console.log(
+      `Movie: ${d.data.name}, Value: ${d.data.value}, Area: ${
+        (d.x1 - d.x0) * (d.y1 - d.y0)
+      }`
+    );
+  });
 
   // Color scale
   const colorScale = d3

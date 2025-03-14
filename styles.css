@@ -27,7 +27,8 @@ body {
   border: 1px solid #ccc;
   border-radius: 5px;
   pointer-events: none;
-  font-size: 0.9em;
+  font-size: 0.8em;
+  max-width: 300px;
 }
 
 #legend {
