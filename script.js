@@ -58,8 +58,8 @@ function drawTreemap(data) {
   const treemap = d3
     .treemap()
     .size([width, height])
-    .tile(d3.treemapResquarify) // Use 'resquarify' for better proportional area
-    .paddingInner(1); // Ensures some spacing inside tiles
+    .tile(d3.treemapSquarify) // Use 'resquarify' for better proportional area
+    .paddingInner(0); // Remove padding
 
   // Create hierarchy
   const root = d3
