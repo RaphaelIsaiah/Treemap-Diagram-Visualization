@@ -149,6 +149,12 @@ function drawTreemap(data) {
 
   const categories = [...new Set(root.leaves().map((d) => d.data.category))];
   const legendItemsPerRow = Math.floor(legendWidth / 120); // Adjust based on item width
+  const legendRowHeight = 25; // Height of each legend row
+  const legendRows = Math.ceil(categories.length / legendItemsPerRow); // Number of rows needed
+  const legendTotalHeight = legendRows * legendRowHeight; // Total height of the legend
+
+  // Update SVG height to accommodate the legend
+  svg.attr("height", height + legendTotalHeight + 40); // Add extra padding
 
   legend
     .selectAll("rect")
@@ -157,7 +163,7 @@ function drawTreemap(data) {
     .append("rect")
     .attr("class", "legend-item")
     .attr("x", (d, i) => (i % legendItemsPerRow) * 120) // Adjust spacing
-    .attr("y", (d, i) => Math.floor(i / legendItemsPerRow) * 25) // Stack items
+    .attr("y", (d, i) => Math.floor(i / legendItemsPerRow) * legendRowHeight) // Stack items
     .attr("width", 18)
     .attr("height", 18)
     .attr("fill", (d) => colorScale(d));
@@ -168,7 +174,10 @@ function drawTreemap(data) {
     .enter()
     .append("text")
     .attr("x", (d, i) => (i % legendItemsPerRow) * 120 + 25) // Adjust spacing
-    .attr("y", (d, i) => Math.floor(i / legendItemsPerRow) * 25 + 15) // Stack items
+    .attr(
+      "y",
+      (d, i) => Math.floor(i / legendItemsPerRow) * legendRowHeight + 15
+    ) // Stack items
     .text((d) => d);
 }
 
