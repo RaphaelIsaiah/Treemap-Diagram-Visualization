@@ -148,6 +148,7 @@ function drawTreemap(data) {
     );
 
   const categories = [...new Set(root.leaves().map((d) => d.data.category))];
+  const legendItemsPerRow = Math.floor(legendWidth / 120); // Adjust based on item width
 
   legend
     .selectAll("rect")
@@ -155,8 +156,8 @@ function drawTreemap(data) {
     .enter()
     .append("rect")
     .attr("class", "legend-item")
-    .attr("x", (d, i) => (i % 5) * 120) // Creates rows of legend items
-    .attr("y", (d, i) => Math.floor(i / 5) * 25) // Stacks legend items
+    .attr("x", (d, i) => (i % legendItemsPerRow) * 120) // Adjust spacing
+    .attr("y", (d, i) => Math.floor(i / legendItemsPerRow) * 25) // Stack items
     .attr("width", 18)
     .attr("height", 18)
     .attr("fill", (d) => colorScale(d));
@@ -166,9 +167,28 @@ function drawTreemap(data) {
     .data(categories)
     .enter()
     .append("text")
-    .attr("x", (d, i) => (i % 5) * 120 + 25)
-    .attr("y", (d, i) => Math.floor(i / 5) * 25 + 15)
+    .attr("x", (d, i) => (i % legendItemsPerRow) * 120 + 25) // Adjust spacing
+    .attr("y", (d, i) => Math.floor(i / legendItemsPerRow) * 25 + 15) // Stack items
     .text((d) => d);
+}
+
+// Function to handle window resize
+function handleResize() {
+  // Update dimensions
+  width = window.innerWidth * 0.9;
+  height = window.innerHeight * 0.6;
+
+  // Update SVG dimensions
+  svg.attr("width", width).attr("height", height + legendHeight);
+
+  // Redraw the treemap
+  const urlParams = new URLSearchParams(window.location.search);
+  const selectedDataset = urlParams.get("dataset") || "movies"; // Default to movies
+  const dataset = DATASETS[selectedDataset];
+
+  d3.json(dataset.FILE_PATH).then((data) => {
+    drawTreemap(data);
+  });
 }
 
 // Load the selected dataset
@@ -212,25 +232,6 @@ window.addEventListener("popstate", () => {
     drawTreemap(data);
   });
 });
-
-// Function to handle window resize
-function handleResize() {
-  // Update dimensions
-  width = window.innerWidth * 0.9;
-  height = window.innerHeight * 0.6;
-
-  // Update SVG dimensions
-  svg.attr("width", width).attr("height", height + legendHeight);
-
-  // Redraw the treemap
-  const urlParams = new URLSearchParams(window.location.search);
-  const selectedDataset = urlParams.get("dataset") || "movies"; // Default to movies
-  const dataset = DATASETS[selectedDataset];
-
-  d3.json(dataset.FILE_PATH).then((data) => {
-    drawTreemap(data);
-  });
-}
 
 // Handle window resize
 window.addEventListener("resize", handleResize);
