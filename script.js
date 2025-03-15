@@ -31,9 +31,9 @@ document.getElementById("title").innerHTML = dataset.TITLE;
 document.getElementById("description").innerHTML = dataset.DESCRIPTION;
 
 // Set dimensions
-const width = 960;
-const height = 600;
-const legendHeight = 120; // Reduced legend height to fit better
+let width = window.innerWidth * 0.9; // 90% of window width
+let height = window.innerHeight * 0.6; // 60% of window height
+const legendHeight = 120; // Fixed height for the legend
 
 // Create SVG
 const svg = d3
@@ -67,15 +67,6 @@ function drawTreemap(data) {
 
   treemap(root);
 
-  // Log tile areas for debugging
-  root.leaves().forEach((d) => {
-    console.log(
-      `Movie: ${d.data.name}, Value: ${d.data.value}, Area: ${
-        (d.x1 - d.x0) * (d.y1 - d.y0)
-      }`
-    );
-  });
-
   // Color scale
   const colorScale = d3
     .scaleOrdinal()
@@ -106,7 +97,7 @@ function drawTreemap(data) {
     .attr("x", 5)
     .attr("y", 15)
     .text((d) => {
-      const maxLength = Math.floor((d.x1 - d.x0) / 10);
+      const maxLength = Math.floor((d.x1 - d.x0) / (width < 600 ? 6 : 10)); // Adjust for smaller screens
       return d.data.name.length > maxLength
         ? d.data.name.substring(0, maxLength) + "..."
         : d.data.name;
@@ -114,7 +105,9 @@ function drawTreemap(data) {
     .attr("font-size", (d) => {
       const tileWidth = d.x1 - d.x0;
       const tileHeight = d.y1 - d.y0;
-      return Math.min(14, tileWidth / 8, tileHeight / 2) + "px";
+      return (
+        Math.min(width < 600 ? 10 : 14, tileWidth / 8, tileHeight / 2) + "px"
+      ); // Adjust for smaller screens
     })
     .attr("fill", "white");
 
@@ -145,7 +138,7 @@ function drawTreemap(data) {
     });
 
   // Legend improvements
-  const legendWidth = 600;
+  const legendWidth = Math.min(600, width * 0.9); // Adjust legend width for smaller screens
   const legend = svg
     .append("g")
     .attr("id", "legend")
@@ -219,3 +212,25 @@ window.addEventListener("popstate", () => {
     drawTreemap(data);
   });
 });
+
+// Function to handle window resize
+function handleResize() {
+  // Update dimensions
+  width = window.innerWidth * 0.9;
+  height = window.innerHeight * 0.6;
+
+  // Update SVG dimensions
+  svg.attr("width", width).attr("height", height + legendHeight);
+
+  // Redraw the treemap
+  const urlParams = new URLSearchParams(window.location.search);
+  const selectedDataset = urlParams.get("dataset") || "movies"; // Default to movies
+  const dataset = DATASETS[selectedDataset];
+
+  d3.json(dataset.FILE_PATH).then((data) => {
+    drawTreemap(data);
+  });
+}
+
+// Handle window resize
+window.addEventListener("resize", handleResize);
