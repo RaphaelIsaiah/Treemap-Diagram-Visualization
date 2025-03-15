@@ -188,7 +188,34 @@ document.querySelectorAll("#dataset-links a").forEach((link) => {
   link.addEventListener("click", (event) => {
     event.preventDefault(); // Prevent default link behavior
     const dataset = event.target.getAttribute("href").split("=")[1];
-    window.history.pushState({}, "", `?dataset=${dataset}`); // Update URL
-    location.reload(); // Reload the page to load the new dataset
+
+    // Update the URL without reloading the page
+    window.history.pushState({}, "", `?dataset=${dataset}`);
+
+    // Update the title and description
+    document.getElementById("title").innerHTML = DATASETS[dataset].TITLE;
+    document.getElementById("description").innerHTML =
+      DATASETS[dataset].DESCRIPTION;
+
+    // Load the new dataset
+    d3.json(DATASETS[dataset].FILE_PATH).then((data) => {
+      drawTreemap(data);
+    });
+  });
+});
+
+// Handle back/forward button navigation
+window.addEventListener("popstate", () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const selectedDataset = urlParams.get("dataset") || "movies"; // Default to movies
+  const dataset = DATASETS[selectedDataset];
+
+  // Update the title and description
+  document.getElementById("title").innerHTML = dataset.TITLE;
+  document.getElementById("description").innerHTML = dataset.DESCRIPTION;
+
+  // Load the new dataset
+  d3.json(dataset.FILE_PATH).then((data) => {
+    drawTreemap(data);
   });
 });
