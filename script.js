@@ -42,6 +42,13 @@ const svg = d3
   .attr("width", width)
   .attr("height", height + legendHeight);
 
+// Create tooltip (outside drawTreemap to avoid recreation)
+const tooltip = d3
+  .select("body")
+  .append("div")
+  .attr("id", "tooltip")
+  .style("opacity", 0);
+
 // Function to draw the treemap
 function drawTreemap(data) {
   // Clear existing treemap
@@ -111,13 +118,7 @@ function drawTreemap(data) {
     })
     .attr("fill", "white");
 
-  // Tooltip
-  const tooltip = d3
-    .select("body")
-    .append("div")
-    .attr("id", "tooltip")
-    .style("opacity", 0);
-
+  // Tooltip interaction
   cells
     .on("mouseover", (event, d) => {
       tooltip.transition().duration(200).style("opacity", 0.9);
