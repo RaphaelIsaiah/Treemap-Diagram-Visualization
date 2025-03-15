@@ -1,6 +1,15 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
   font-family: Arial, sans-serif;
   text-align: center;
+  padding: 1rem;
+  word-wrap: break-word;
+  outline: none;
 }
 
 #title {
@@ -45,4 +54,21 @@ body {
   font-family: Arial, sans-serif;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); /* Improve readability */
+}
+
+#dataset-links {
+  /* text-align: center; */
+  margin-bottom: 1rem;
+}
+
+#dataset-links a {
+  margin: 0 10px;
+  text-decoration: none;
+  color: #1f77b4;
+  font-weight: bold;
+}
+
+#dataset-links a:hover {
+  /* text-decoration: underline; */
+  border-bottom: 2px solid #1f77b4;
 }

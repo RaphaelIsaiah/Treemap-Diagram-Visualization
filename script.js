@@ -1,3 +1,35 @@
+// Define datasets
+const DATASETS = {
+  movies: {
+    TITLE: "Movie Sales",
+    DESCRIPTION: "Top 100 Highest Grossing Movies Grouped By Genre",
+    FILE_PATH:
+      "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/movie-data.json",
+  },
+  videogames: {
+    TITLE: "Video Game Sales",
+    DESCRIPTION: "Top 100 Most Sold Video Games Grouped by Platform",
+    FILE_PATH:
+      "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/video-game-sales-data.json",
+  },
+  kickstarter: {
+    TITLE: "Kickstarter Pledges",
+    DESCRIPTION:
+      "Top 100 Most Pledged Kickstarter Campaigns Grouped By Category",
+    FILE_PATH:
+      "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/kickstarter-funding-data.json",
+  },
+};
+
+// Get the selected dataset from the URL
+const urlParams = new URLSearchParams(window.location.search);
+const selectedDataset = urlParams.get("dataset") || "movies"; // Default to movies
+const dataset = DATASETS[selectedDataset];
+
+// Update the title and description
+document.getElementById("title").innerHTML = dataset.TITLE;
+document.getElementById("description").innerHTML = dataset.DESCRIPTION;
+
 // Set dimensions
 const width = 960;
 const height = 600;
@@ -10,11 +42,11 @@ const svg = d3
   .attr("width", width)
   .attr("height", height + legendHeight);
 
-// Load data
-const url =
-  "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/movie-data.json";
+// Function to draw the treemap
+function drawTreemap(data) {
+  // Clear existing treemap
+  svg.selectAll("*").remove();
 
-d3.json(url).then((data) => {
   // Treemap layout
   const treemap = d3
     .treemap()
@@ -144,4 +176,19 @@ d3.json(url).then((data) => {
     .attr("x", (d, i) => (i % 5) * 120 + 25)
     .attr("y", (d, i) => Math.floor(i / 5) * 25 + 15)
     .text((d) => d);
+}
+
+// Load the selected dataset
+d3.json(dataset.FILE_PATH).then((data) => {
+  drawTreemap(data);
+});
+
+// Handle dataset link clicks
+document.querySelectorAll("#dataset-links a").forEach((link) => {
+  link.addEventListener("click", (event) => {
+    event.preventDefault(); // Prevent default link behavior
+    const dataset = event.target.getAttribute("href").split("=")[1];
+    window.history.pushState({}, "", `?dataset=${dataset}`); // Update URL
+    location.reload(); // Reload the page to load the new dataset
+  });
 });
