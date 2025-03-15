@@ -1,4 +1,4 @@
-// Define datasets
+// Constants
 const DATASETS = {
   movies: {
     TITLE: "Movie Sales",
@@ -21,66 +21,99 @@ const DATASETS = {
   },
 };
 
+// Global variables
+let width, height, svg, tooltip;
+
+// Initialize the visualization
+function init() {
+  const selectedDataset = getSelectedDataset();
+  updateTitleAndDescription(selectedDataset);
+  setupSVG();
+  setupTooltip();
+  loadAndDrawDataset(selectedDataset);
+  setupEventListeners();
+}
+
 // Get the selected dataset from the URL
-const urlParams = new URLSearchParams(window.location.search);
-const selectedDataset = urlParams.get("dataset") || "movies"; // Default to movies
-const dataset = DATASETS[selectedDataset];
+function getSelectedDataset() {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get("dataset") || "movies"; // Default to movies
+}
 
 // Update the title and description
-document.getElementById("title").innerHTML = dataset.TITLE;
-document.getElementById("description").innerHTML = dataset.DESCRIPTION;
+function updateTitleAndDescription(dataset) {
+  document.getElementById("title").innerHTML = DATASETS[dataset].TITLE;
+  document.getElementById("description").innerHTML =
+    DATASETS[dataset].DESCRIPTION;
+}
 
-// Set dimensions
-let width = window.innerWidth * 0.9; // 90% of window width
-let height = window.innerHeight * 0.6; // 60% of window height
-const legendHeight = 120; // Fixed height for the legend
+// Set up the SVG canvas
+function setupSVG() {
+  width = window.innerWidth * 0.9; // 90% of window width
+  height = window.innerHeight * 0.6; // 60% of window height
+  svg = d3
+    .select("body")
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height + 120); // Add space for the legend
+}
 
-// Create SVG
-const svg = d3
-  .select("body")
-  .append("svg")
-  .attr("width", width)
-  .attr("height", height + legendHeight);
+// Set up the tooltip
+function setupTooltip() {
+  tooltip = d3
+    .select("body")
+    .append("div")
+    .attr("id", "tooltip")
+    .style("opacity", 0);
+}
 
-// Create tooltip (outside drawTreemap to avoid recreation)
-const tooltip = d3
-  .select("body")
-  .append("div")
-  .attr("id", "tooltip")
-  .style("opacity", 0);
+// Load and draw the dataset
+function loadAndDrawDataset(dataset) {
+  d3.json(DATASETS[dataset].FILE_PATH).then((data) => {
+    drawTreemap(data);
+  });
+}
 
-// Function to draw the treemap
+// Draw the treemap
 function drawTreemap(data) {
-  // Clear existing treemap
-  svg.selectAll("*").remove();
+  svg.selectAll("*").remove(); // Clear existing treemap
 
-  // Treemap layout
-  const treemap = d3
-    .treemap()
-    .size([width, height])
-    .tile(d3.treemapSquarify) // Use 'resquarify' for better proportional area
-    .paddingInner(0); // Remove padding
-
-  // Create hierarchy
-  const root = d3
-    .hierarchy(data)
-    .eachBefore(function (d) {
-      d.data.id = (d.parent ? d.parent.data.id + "." : "") + d.data.name;
-    })
-    .sum((d) => d.value) // Sum values for tile sizes
-    .sort(function (a, b) {
-      return b.height - a.height || b.value - a.value; // Sort by height and value
-    });
-
+  const treemap = createTreemapLayout();
+  const root = createHierarchy(data);
   treemap(root);
 
-  // Color scale
-  const colorScale = d3
+  const colorScale = createColorScale(root);
+  drawTiles(root, colorScale);
+  drawLegend(root, colorScale);
+}
+
+// Create the treemap layout
+function createTreemapLayout() {
+  return d3
+    .treemap()
+    .size([width, height])
+    .tile(d3.treemapSquarify)
+    .paddingInner(0);
+}
+
+// Create the hierarchy
+function createHierarchy(data) {
+  return d3
+    .hierarchy(data)
+    .sum((d) => d.value)
+    .sort((a, b) => b.value - a.value);
+}
+
+// Create the color scale
+function createColorScale(root) {
+  return d3
     .scaleOrdinal()
     .domain(root.leaves().map((d) => d.data.category))
     .range(d3.schemeCategory10);
+}
 
-  // Draw tiles
+// Draw the tiles
+function drawTiles(root, colorScale) {
   const cells = svg
     .selectAll("g")
     .data(root.leaves())
@@ -98,48 +131,54 @@ function drawTreemap(data) {
     .attr("data-category", (d) => d.data.category)
     .attr("data-value", (d) => d.data.value);
 
-  // Add text to tiles
   cells
     .append("text")
     .attr("x", 5)
     .attr("y", 15)
-    .text((d) => {
-      const maxLength = Math.floor((d.x1 - d.x0) / (width < 600 ? 6 : 10)); // Adjust for smaller screens
-      return d.data.name.length > maxLength
-        ? d.data.name.substring(0, maxLength) + "..."
-        : d.data.name;
-    })
-    .attr("font-size", (d) => {
-      const tileWidth = d.x1 - d.x0;
-      const tileHeight = d.y1 - d.y0;
-      return (
-        Math.min(width < 600 ? 10 : 14, tileWidth / 8, tileHeight / 2) + "px"
-      ); // Adjust for smaller screens
-    })
+    .text((d) => truncateText(d.data.name, d.x1 - d.x0))
+    .attr("font-size", (d) => calculateFontSize(d.x1 - d.x0, d.y1 - d.y0))
     .attr("fill", "white");
 
-  // Tooltip interaction
   cells
-    .on("mouseover", (event, d) => {
-      tooltip.transition().duration(200).style("opacity", 0.9);
-      tooltip
-        .html(
-          `
-        ${d.data.name}<br>
-        Category: ${d.data.category}<br>
-        Value: ${d.data.value}
-      `
-        )
-        .attr("data-value", d.data.value)
-        .style("left", `${Math.min(event.pageX + 10, width - 150)}px`)
-        .style("top", `${Math.max(event.pageY - 40, 10)}px`); // Ensures it stays within viewport
-    })
-    .on("mouseout", () => {
-      tooltip.transition().duration(500).style("opacity", 0);
-    });
+    .on("mouseover", (event, d) => showTooltip(event, d))
+    .on("mouseout", hideTooltip);
+}
 
-  // Legend improvements
-  const legendWidth = Math.min(600, width * 0.9); // Adjust legend width for smaller screens
+// Truncate text if it's too long
+function truncateText(text, tileWidth) {
+  const maxLength = Math.floor(tileWidth / (width < 600 ? 6 : 10));
+  return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+}
+
+// Calculate font size based on tile size
+function calculateFontSize(tileWidth, tileHeight) {
+  return Math.min(width < 600 ? 10 : 14, tileWidth / 8, tileHeight / 2) + "px";
+}
+
+// Show the tooltip
+function showTooltip(event, d) {
+  tooltip.transition().duration(200).style("opacity", 0.9);
+  tooltip
+    .html(
+      `
+    ${d.data.name}<br>
+    Category: ${d.data.category}<br>
+    Value: ${d.data.value}
+  `
+    )
+    .attr("data-value", d.data.value)
+    .style("left", `${Math.min(event.pageX + 10, width - 150)}px`)
+    .style("top", `${Math.max(event.pageY - 40, 10)}px`);
+}
+
+// Hide the tooltip
+function hideTooltip() {
+  tooltip.transition().duration(500).style("opacity", 0);
+}
+
+// Draw the legend
+function drawLegend(root, colorScale) {
+  const legendWidth = Math.min(600, width * 0.9);
   const legend = svg
     .append("g")
     .attr("id", "legend")
@@ -149,13 +188,12 @@ function drawTreemap(data) {
     );
 
   const categories = [...new Set(root.leaves().map((d) => d.data.category))];
-  const legendItemsPerRow = Math.floor(legendWidth / 120); // Adjust based on item width
-  const legendRowHeight = 25; // Height of each legend row
-  const legendRows = Math.ceil(categories.length / legendItemsPerRow); // Number of rows needed
-  const legendTotalHeight = legendRows * legendRowHeight; // Total height of the legend
+  const legendItemsPerRow = Math.floor(legendWidth / 120);
+  const legendRowHeight = 25;
+  const legendRows = Math.ceil(categories.length / legendItemsPerRow);
+  const legendTotalHeight = legendRows * legendRowHeight;
 
-  // Update SVG height to accommodate the legend
-  svg.attr("height", height + legendTotalHeight + 40); // Add extra padding
+  svg.attr("height", height + legendTotalHeight + 40); // Adjust SVG height
 
   legend
     .selectAll("rect")
@@ -163,8 +201,8 @@ function drawTreemap(data) {
     .enter()
     .append("rect")
     .attr("class", "legend-item")
-    .attr("x", (d, i) => (i % legendItemsPerRow) * 120) // Adjust spacing
-    .attr("y", (d, i) => Math.floor(i / legendItemsPerRow) * legendRowHeight) // Stack items
+    .attr("x", (d, i) => (i % legendItemsPerRow) * 120)
+    .attr("y", (d, i) => Math.floor(i / legendItemsPerRow) * legendRowHeight)
     .attr("width", 18)
     .attr("height", 18)
     .attr("fill", (d) => colorScale(d));
@@ -174,74 +212,47 @@ function drawTreemap(data) {
     .data(categories)
     .enter()
     .append("text")
-    .attr("x", (d, i) => (i % legendItemsPerRow) * 120 + 25) // Adjust spacing
+    .attr("x", (d, i) => (i % legendItemsPerRow) * 120 + 25)
     .attr(
       "y",
       (d, i) => Math.floor(i / legendItemsPerRow) * legendRowHeight + 15
-    ) // Stack items
+    )
     .text((d) => d);
 }
 
-// Function to handle window resize
+// Handle window resize
 function handleResize() {
-  // Update dimensions
   width = window.innerWidth * 0.9;
   height = window.innerHeight * 0.6;
+  svg.attr("width", width).attr("height", height + 120);
 
-  // Update SVG dimensions
-  svg.attr("width", width).attr("height", height + legendHeight);
-
-  // Redraw the treemap
-  const urlParams = new URLSearchParams(window.location.search);
-  const selectedDataset = urlParams.get("dataset") || "movies"; // Default to movies
-  const dataset = DATASETS[selectedDataset];
-
-  d3.json(dataset.FILE_PATH).then((data) => {
-    drawTreemap(data);
-  });
+  const selectedDataset = getSelectedDataset();
+  loadAndDrawDataset(selectedDataset);
 }
 
-// Load the selected dataset
-d3.json(dataset.FILE_PATH).then((data) => {
-  drawTreemap(data);
-});
-
-// Handle dataset link clicks
-document.querySelectorAll("#dataset-links a").forEach((link) => {
-  link.addEventListener("click", (event) => {
-    event.preventDefault(); // Prevent default link behavior
-    const dataset = event.target.getAttribute("href").split("=")[1];
-
-    // Update the URL without reloading the page
-    window.history.pushState({}, "", `?dataset=${dataset}`);
-
-    // Update the title and description
-    document.getElementById("title").innerHTML = DATASETS[dataset].TITLE;
-    document.getElementById("description").innerHTML =
-      DATASETS[dataset].DESCRIPTION;
-
-    // Load the new dataset
-    d3.json(DATASETS[dataset].FILE_PATH).then((data) => {
-      drawTreemap(data);
+// Set up event listeners
+function setupEventListeners() {
+  // Dataset link clicks
+  document.querySelectorAll("#dataset-links a").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      const dataset = event.target.getAttribute("href").split("=")[1];
+      window.history.pushState({}, "", `?dataset=${dataset}`);
+      updateTitleAndDescription(dataset);
+      loadAndDrawDataset(dataset);
     });
   });
-});
 
-// Handle back/forward button navigation
-window.addEventListener("popstate", () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const selectedDataset = urlParams.get("dataset") || "movies"; // Default to movies
-  const dataset = DATASETS[selectedDataset];
-
-  // Update the title and description
-  document.getElementById("title").innerHTML = dataset.TITLE;
-  document.getElementById("description").innerHTML = dataset.DESCRIPTION;
-
-  // Load the new dataset
-  d3.json(dataset.FILE_PATH).then((data) => {
-    drawTreemap(data);
+  // Back/forward navigation
+  window.addEventListener("popstate", () => {
+    const selectedDataset = getSelectedDataset();
+    updateTitleAndDescription(selectedDataset);
+    loadAndDrawDataset(selectedDataset);
   });
-});
 
-// Handle window resize
-window.addEventListener("resize", handleResize);
+  // Window resize
+  window.addEventListener("resize", handleResize);
+}
+
+// Initialize the visualization
+init();
